@@ -21,6 +21,7 @@ public interface UserRepository extends JpaRepository<UserEntity,Long>
     //Use pageable
     Page<UserEntity> findByUserNameContains(String name, Pageable pageable);
     //find username vs userEmail
+    UserEntity findByUserEmail(String userEmail);
 
     UserEntity findByUserNameAndUserEmail(String userName, String userEmail);
 

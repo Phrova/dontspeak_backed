@@ -22,11 +22,14 @@ public class UserEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(columnDefinition = "VARCHAR(255) COMMENT 'user name'",nullable = false)
+    @Column(nullable = false)
     private  String userName;
 
-    @Column(columnDefinition = "VARCHAR(255) COMMENT 'user email'",nullable = false,unique = true)
+    @Column(nullable = false,unique = true)
     private String userEmail;
+
+    @Column(nullable = true)
+    private String password;
 
     @OneToMany(mappedBy = "user",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
     @ToString.Exclude

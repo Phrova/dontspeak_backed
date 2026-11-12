@@ -11,6 +11,7 @@ public interface UserService {
 
  List<UserEntity> getAllUsers();
 
+ UserEntity findByUserEmail(String userEmail);
 
  UserEntity findByUserNameAndUserEmail(String userName,String userEmai);
 
