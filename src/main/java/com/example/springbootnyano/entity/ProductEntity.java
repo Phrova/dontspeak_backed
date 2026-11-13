@@ -1,5 +1,6 @@
 package com.example.springbootnyano.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,7 +19,7 @@ public class ProductEntity {
     private String productName;
 
     private BigDecimal productPrice;
-
+    @JsonIgnore
    @ManyToMany(fetch = FetchType.EAGER)
    @JoinTable(
            name = "java_product_order_001",

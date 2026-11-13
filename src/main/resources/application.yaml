@@ -2,7 +2,7 @@ spring:
   application:
     name: springboot-nyano
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=BadminStore;encrypt=true;trustServerCertificate=true;
+    url: jdbc:sqlserver://localhost:1433;databaseName=BadminStore;encrypt=true;trustServerCertificate=true;sendStringParametersAsUnicode=true;
     username: sa
     password: 123456
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
