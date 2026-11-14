@@ -19,12 +19,12 @@ public class ProductEntity {
     private String productName;
 
     private BigDecimal productPrice;
-    @JsonIgnore
-   @ManyToMany(fetch = FetchType.EAGER)
-   @JoinTable(
-           name = "java_product_order_001",
-           joinColumns = @JoinColumn(name="product_id"),
-           inverseJoinColumns = @JoinColumn(name="order_id")
-   )
-    private List<OrderEntity> orderList;
+//    @JsonIgnore
+//   @ManyToMany(fetch = FetchType.EAGER)
+//   @JoinTable(
+//           name = "java_product_order_001",
+//           joinColumns = @JoinColumn(name="product_id"),
+//           inverseJoinColumns = @JoinColumn(name="order_id")
+//   )
+//    private List<OrderEntity> orderList;
 }
