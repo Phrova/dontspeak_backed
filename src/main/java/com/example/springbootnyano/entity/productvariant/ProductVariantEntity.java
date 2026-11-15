@@ -20,6 +20,10 @@ public class ProductVariantEntity {
     private String tension;
     private String weightGrip;
     private BigDecimal price;
+
     @Column(name = "stock_quantity")
     private Integer stockQuantity;
+
+    private String discountType;
+    private BigDecimal discountValue;
 }

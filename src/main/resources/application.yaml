@@ -2,7 +2,7 @@ spring:
   application:
     name: springboot-nyano
   datasource:
-    url: jdbc:sqlserver://localhost:1433;databaseName=BadminStore;encrypt=true;trustServerCertificate=true;sendStringParametersAsUnicode=true;
+    url: jdbc:sqlserver://localhost:1433;databaseName=BadminStore;encrypt=true;trustServerCertificate=true;sendStringParametersAsUnicode=true
     username: sa
     password: 123456
     driver-class-name: com.microsoft.sqlserver.jdbc.SQLServerDriver
@@ -10,22 +10,18 @@ spring:
     database: sql_server
     show-sql: true
     hibernate:
-      # Use 'validate' or 'none' since your SQL script already creates the tables
       ddl-auto: update
     properties:
       hibernate:
         dialect: org.hibernate.dialect.SQLServerDialect
         format_sql: true
         use_sql_comments: true
-
-  server:
-    port: 8080
-
+        use_nationalized_character_data: true
   mail:
     host: smtp.gmail.com
     port: 465
-    username: phamquangduong28102003@gmail.com
-    password: dgiv wdnw gfvw ezcy
+    username: sunsnow0049@gmail.com
+    password: whistar874@
     properties:
       mail:
         smtp:
@@ -36,3 +32,6 @@ spring:
           ssl:
             enable: true
     default-encoding: UTF-8
+
+server:
+  port: 8080

@@ -3,12 +3,9 @@ package com.example.springbootnyano.entity.user;
 import com.example.springbootnyano.entity.feed.FeedEntity;
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.Getter;
-import lombok.Setter;
 import lombok.ToString;
 import org.hibernate.annotations.DynamicInsert;
 import org.hibernate.annotations.DynamicUpdate;
-
 import java.util.List;
 
 @Data
@@ -16,27 +13,27 @@ import java.util.List;
 @Table(name = "java_user_001")
 @DynamicInsert
 @DynamicUpdate
-
 public class UserEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @Column(nullable = false)
-    private  String userName;
+    private String userName;
 
-    @Column(nullable = false,unique = true)
+    @Column(nullable = false, unique = true)
     private String userEmail;
 
-    @Column(nullable = true)
+    @Column(nullable = false)
     private String password;
 
-    @OneToMany(mappedBy = "user",cascade = CascadeType.ALL,fetch = FetchType.LAZY)
+    private String role = "USER";
+
+    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     @ToString.Exclude
     private List<FeedEntity> feedList;
 
-
     @OneToOne(cascade = CascadeType.ALL)
-    @JoinColumn(name="cccd_id")
+    @JoinColumn(name = "cccd_id")
     private CCCDEntity cccd;
 }
