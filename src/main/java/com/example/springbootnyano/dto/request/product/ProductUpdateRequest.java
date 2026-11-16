@@ -7,4 +7,5 @@ import java.math.BigDecimal;
 public class ProductUpdateRequest {
     private String productName;
     private BigDecimal productPrice;
+    private String brand;
 }

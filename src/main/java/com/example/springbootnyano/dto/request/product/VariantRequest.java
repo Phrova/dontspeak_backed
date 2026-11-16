@@ -11,6 +11,7 @@ public class VariantRequest {
     private String weightGrip;
     private BigDecimal price;
     private Integer stockQuantity;
-    private String discountType;   // "PERCENT" | "FIXED" | null
+    private String discountType;
     private BigDecimal discountValue;
+    private String status;
 }

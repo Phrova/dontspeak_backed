@@ -9,4 +9,6 @@ public class ProductCreateRequest {
     private String productName;
     private BigDecimal productPrice;
     private List<VariantRequest> variants;
+    private String brand;
+
 }

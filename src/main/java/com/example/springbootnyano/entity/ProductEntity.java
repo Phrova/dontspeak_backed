@@ -1,16 +1,13 @@
 package com.example.springbootnyano.entity;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
-import lombok.*;
-
+import lombok.Data;
 import java.math.BigDecimal;
-import java.util.List;
-
 
 @Data
 @Entity
-@Table(name = "java_product_001")
+@Table(name = "java_product_001",
+        uniqueConstraints = @UniqueConstraint(name = "UQ_product_name", columnNames = {"product_name"}))
 public class ProductEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -19,12 +16,6 @@ public class ProductEntity {
     private String productName;
 
     private BigDecimal productPrice;
-//    @JsonIgnore
-//   @ManyToMany(fetch = FetchType.EAGER)
-//   @JoinTable(
-//           name = "java_product_order_001",
-//           joinColumns = @JoinColumn(name="product_id"),
-//           inverseJoinColumns = @JoinColumn(name="order_id")
-//   )
-//    private List<OrderEntity> orderList;
+
+    private String brand;
 }
