@@ -3,6 +3,7 @@ package com.example.springbootnyano.entity;
 import jakarta.persistence.*;
 import lombok.Data;
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 
 @Data
 @Entity
@@ -18,4 +19,12 @@ public class ProductEntity {
     private BigDecimal productPrice;
 
     private String brand;
+
+    @Column(updatable = false)
+    private LocalDateTime createdAt;
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = LocalDateTime.now();
+    }
 }

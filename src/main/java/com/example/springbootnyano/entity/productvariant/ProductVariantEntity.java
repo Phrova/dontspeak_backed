@@ -30,4 +30,12 @@ public class ProductVariantEntity {
     private BigDecimal discountValue;
 
     private String status;
+
+    @Column(updatable = false)
+    private java.time.LocalDateTime createdAt;
+
+    @PrePersist
+    void onCreate() {
+        if (createdAt == null) createdAt = java.time.LocalDateTime.now();
+    }
 }

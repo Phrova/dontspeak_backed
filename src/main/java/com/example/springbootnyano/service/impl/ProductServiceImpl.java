@@ -1,8 +1,7 @@
 package com.example.springbootnyano.service.impl;
 
-import com.example.springbootnyano.dto.request.product.ProductCreateRequest;
-import com.example.springbootnyano.dto.request.product.ProductUpdateRequest;
-import com.example.springbootnyano.dto.request.product.VariantRequest;
+import com.example.springbootnyano.dto.request.product.*;
+import com.example.springbootnyano.dto.response.product.BulkCreateResult;
 import com.example.springbootnyano.entity.ProductEntity;
 import com.example.springbootnyano.entity.productvariant.ProductVariantEntity;
 import com.example.springbootnyano.repository.OptionCatalogRepository;
@@ -17,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
+import java.util.*;
 
 @Service
 public class ProductServiceImpl implements ProductService {
@@ -24,6 +24,34 @@ public class ProductServiceImpl implements ProductService {
     @Autowired private ProductRepository productRepository;
     @Autowired private ProductVariantRepository productVariantRepository;
     @Autowired private OptionCatalogRepository catalogRepository;
+
+    private static final Set<String> AXES = Set.of("COLOR", "TENSION", "STRING", "GRIP");
+    private static final Map<String, String> AXIS_LABEL = Map.of(
+            "COLOR", "Màu sắc", "TENSION", "Độ căng dây", "STRING", "Loại dây", "GRIP", "Trọng lượng / cỡ cán");
+
+    @Override
+    @Transactional
+    public BulkCreateResult bulkCreateVariantsFromRows(Long productId, BulkRowsRequest request) {
+        if (!productRepository.existsById(productId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm " + productId);
+        List<VariantRequest> rows = request.getRows();
+        if (rows == null || rows.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bản xem trước chưa có biến thể nào");
+        if (rows.size() > 40)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tối đa 40 biến thể mỗi lần thêm hàng loạt");
+        Set<String> keys = new HashSet<>();
+        for (ProductVariantEntity x : productVariantRepository.findByProductId(productId)) keys.add(specKey(x));
+        List<String> skipped = new ArrayList<>();
+        int created = 0;
+        for (VariantRequest r : rows) {
+            ProductVariantEntity v = toVariant(productId, r);
+            String key = specKey(v);
+            if (!keys.add(key)) { skipped.add(v.getColor() + " / " + v.getTension() + " / " + v.getWeightGrip()); continue; }
+            productVariantRepository.save(v);
+            created++;
+        }
+        return new BulkCreateResult(created, skipped.size(), skipped);
+    }
 
     @Override
     @Transactional
@@ -44,6 +72,31 @@ public class ProductServiceImpl implements ProductService {
         return product;
     }
 
+    @Override
+    @Transactional
+    public Map<String, Object> deleteVariantsByFilter(Long productId, VariantFilterRequest f) {
+        if (!productRepository.existsById(productId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm " + productId);
+        String color = blankToNull(f.getColor()), string = blankToNull(f.getStringType());
+        String tension = blankToNull(f.getTension()), grip = blankToNull(f.getWeightGrip());
+        if (color == null && string == null && tension == null && grip == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chọn ít nhất một tiêu chí để xóa");
+        if (color != null) color = normalizeCatalog("COLOR", color, "Màu sắc");
+        if (string != null) string = normalizeCatalog("STRING", string, "Loại dây");
+        if (tension != null) tension = normalizeCatalog("TENSION", tension, "Độ căng dây");
+        if (grip != null) grip = normalizeCatalog("GRIP", grip, "Trọng lượng / cỡ cán");
+        final String c = color, s = string, t = tension, g = grip;
+        List<ProductVariantEntity> matched = productVariantRepository.findByProductId(productId).stream()
+                .filter(v -> (c == null || fold(v.getColor()).equals(fold(c)))
+                        && (s == null || fold(v.getStringType()).equals(fold(s)))
+                        && (t == null || fold(v.getTension()).equals(fold(t)))
+                        && (g == null || fold(v.getWeightGrip()).equals(fold(g))))
+                .collect(java.util.stream.Collectors.toList());
+        productVariantRepository.deleteAll(matched);
+        return Map.of("deleted", matched.size());
+    }
+
+    private String blankToNull(String s) { return s == null || s.isBlank() ? null : s; }
     @Override
     @Transactional
     public ProductEntity updateProduct(Long id, ProductUpdateRequest request) {
@@ -93,6 +146,85 @@ public class ProductServiceImpl implements ProductService {
         productVariantRepository.deleteById(variantId);
     }
 
+    @Override
+    @Transactional
+    public BulkCreateResult bulkCreateVariants(Long productId, BulkVariantRequest request) {
+        if (!productRepository.existsById(productId))
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm " + productId);
+        String axis = request.getAxis() == null ? "" : request.getAxis().trim().toUpperCase();
+        if (!AXES.contains(axis))
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Trục nhân bản không hợp lệ");
+        List<String> values = request.getValues();
+        if (values == null || values.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chưa chọn giá trị nào để nhân bản");
+        if (values.size() > 10)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tối đa 10 biến thể mỗi lần thêm hàng loạt");
+        VariantRequest base = request.getBase();
+        if (base == null)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Thiếu thông tin biến thể gốc");
+
+        String color   = axis.equals("COLOR")   ? null : normalizeCatalog("COLOR", base.getColor(), "Màu sắc");
+        String string  = axis.equals("STRING")  ? null : normalizeCatalog("STRING", base.getStringType(), "Loại dây");
+        String tension = axis.equals("TENSION") ? null : normalizeCatalog("TENSION", base.getTension(), "Độ căng dây");
+        String grip    = axis.equals("GRIP")    ? null : normalizeCatalog("GRIP", base.getWeightGrip(), "Trọng lượng / cỡ cán");
+
+        Set<String> keys = new HashSet<>();
+        for (ProductVariantEntity x : productVariantRepository.findByProductId(productId)) keys.add(specKey(x));
+        List<String> skipped = new ArrayList<>();
+        int created = 0;
+        for (String raw : values) {
+            String val = normalizeCatalog(axis, raw, AXIS_LABEL.get(axis));
+            ProductVariantEntity v = new ProductVariantEntity();
+            v.setProductId(productId);
+            v.setColor(axis.equals("COLOR") ? val : color);
+            v.setStringType(axis.equals("STRING") ? val : string);
+            v.setTension(axis.equals("TENSION") ? val : tension);
+            v.setWeightGrip(axis.equals("GRIP") ? val : grip);
+            applyCommon(v, base);
+            if (!keys.add(specKey(v))) { skipped.add(val); continue; }
+            productVariantRepository.save(v);
+            created++;
+        }
+        return new BulkCreateResult(created, skipped.size(), skipped);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> bulkDeleteProducts(List<Long> ids) {
+        if (ids == null || ids.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chưa chọn sản phẩm nào");
+        if (ids.size() > 100)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tối đa 100 mục mỗi lần xóa");
+        int dp = 0, dv = 0;
+        for (Long id : ids) {
+            if (!productRepository.existsById(id)) continue;
+            List<ProductVariantEntity> vs = productVariantRepository.findByProductId(id);
+            productVariantRepository.deleteAll(vs);
+            dv += vs.size();
+            productRepository.deleteById(id);
+            dp++;
+        }
+        if (dp == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy sản phẩm nào để xóa");
+        return Map.of("deletedProducts", dp, "deletedVariants", dv);
+    }
+
+    @Override
+    @Transactional
+    public Map<String, Object> bulkDeleteVariants(List<Long> ids) {
+        if (ids == null || ids.isEmpty())
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Chưa chọn biến thể nào");
+        if (ids.size() > 100)
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Tối đa 100 mục mỗi lần xóa");
+        int d = 0;
+        for (Long id : ids) {
+            if (!productVariantRepository.existsById(id)) continue;
+            productVariantRepository.deleteById(id);
+            d++;
+        }
+        if (d == 0) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Không tìm thấy biến thể nào để xóa");
+        return Map.of("deleted", d);
+    }
+
     private ProductVariantEntity toVariant(Long productId, VariantRequest r) {
         ProductVariantEntity v = new ProductVariantEntity();
         v.setProductId(productId);
@@ -105,6 +237,10 @@ public class ProductServiceImpl implements ProductService {
         v.setStringType(normalizeCatalog("STRING", r.getStringType(), "Loại dây"));
         v.setTension(normalizeCatalog("TENSION", r.getTension(), "Độ căng dây"));
         v.setWeightGrip(normalizeCatalog("GRIP", r.getWeightGrip(), "Trọng lượng / cỡ cán"));
+        applyCommon(v, r);
+    }
+
+    private void applyCommon(ProductVariantEntity v, VariantRequest r) {
         if (r.getPrice() == null || r.getPrice().signum() <= 0)
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Giá bán phải lớn hơn 0");
         v.setPrice(r.getPrice());
@@ -123,14 +259,12 @@ public class ProductServiceImpl implements ProductService {
         String cleaned = CatalogFormats.clean(value);
         if (cleaned.isEmpty())
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, label + " không được để trống");
-        String v = CatalogFormats.canonical(category, cleaned); // định dạng kiểm tra LẠI ở đây, kể cả giá trị cũ trong danh mục
+        String v = CatalogFormats.canonical(category, cleaned);
         if (!catalogRepository.existsByCategoryAndOptionValueIgnoreCase(category, v))
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     label + " \"" + v + "\" chưa có trong danh mục. Hãy thêm vào danh mục trước khi dùng.");
         return v;
     }
-
-
 
     private String normalizeBrand(String brand) {
         if (brand == null || brand.isBlank()) return null;
@@ -148,14 +282,18 @@ public class ProductServiceImpl implements ProductService {
     }
 
     private boolean isDuplicateVariant(Long productId, ProductVariantEntity v, Long excludeId) {
+        String key = specKey(v);
         return productVariantRepository.findByProductId(productId).stream()
                 .filter(x -> !x.getId().equals(excludeId))
-                .anyMatch(x -> same(x.getColor(), v.getColor()) && same(x.getStringType(), v.getStringType())
-                        && same(x.getTension(), v.getTension()) && same(x.getWeightGrip(), v.getWeightGrip()));
+                .anyMatch(x -> specKey(x).equals(key));
     }
 
-    private boolean same(String a, String b) {
-        return a != null && b != null && a.trim().equalsIgnoreCase(b.trim());
+    private String specKey(ProductVariantEntity v) {
+        return String.join("|", fold(v.getColor()), fold(v.getStringType()), fold(v.getTension()), fold(v.getWeightGrip()));
+    }
+
+    private String fold(String s) {
+        return CatalogFormats.stripAccents(s == null ? "" : s.trim()).toLowerCase();
     }
 
     private ResponseStatusException dupVariant() {
