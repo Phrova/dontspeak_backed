@@ -23,6 +23,8 @@ public class ProductEntity {
     @Column(updatable = false)
     private LocalDateTime createdAt;
 
+    @Transient private BigDecimal minPrice;
+
     @PrePersist
     void onCreate() {
         if (createdAt == null) createdAt = LocalDateTime.now();

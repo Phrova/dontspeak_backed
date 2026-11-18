@@ -13,7 +13,11 @@ public class ProductVariantEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
+    private Long voucherId;
+    @Transient
+    private java.math.BigDecimal effectivePrice;
+    @Transient
+    private String voucherCode;
     @Column(name = "product_id")
     private Long productId;
 

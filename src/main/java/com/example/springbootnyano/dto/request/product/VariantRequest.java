@@ -5,6 +5,7 @@ import java.math.BigDecimal;
 
 @Data
 public class VariantRequest {
+    private Long voucherId;
     private String color;
     private String stringType;
     private String tension;

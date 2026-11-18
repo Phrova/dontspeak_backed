@@ -9,6 +9,9 @@ import java.util.List;
 import java.util.Map;
 
 public interface ProductService {
+    java.math.BigDecimal effectivePriceOf(ProductVariantEntity v);
+    List<ProductVariantEntity> listVariantsDecorated(Long productId);
+    List<ProductEntity> listProductsDecorated();
     BulkCreateResult bulkCreateVariantsFromRows(Long productId, BulkRowsRequest request);
     Map<String, Object> deleteVariantsByFilter(Long productId, VariantFilterRequest filter);
     ProductEntity createProduct(ProductCreateRequest request);
